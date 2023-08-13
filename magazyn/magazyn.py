@@ -3,7 +3,7 @@ program_status = True
 
 template: dict[str, int | float] = {
     "price": 0,
-    "amout": 0
+    "amount": 0
 }
 
 
@@ -14,45 +14,45 @@ account: dict[str, float] = {
 warehouse: dict[str, dict[str, int | float]] = {
     "rower": {
             "price": 1399,
-            "amout": 6
+            "amount": 6
     },
     "komputer": {
             "price": 5299,
-            "amout": 3
+            "amount": 3
     },
     "doniczka": {
             "price": 49,
-            "amout": 300
+            "amount": 300
     },
     "lizak": {
             "price": 1,
-            "amout": 2000
+            "amount": 2000
     },
     "klej_kropela": {
             "price": 7,
-            "amout": 1300
+            "amount": 1300
     },
     "trampolina": {
             "price": 500,
-            "amout": 9
+            "amount": 9
     },
     "siekiera_fiskars": {
             "price": 300,
-            "amout": 80
+            "amount": 80
     },
 }
 
 history: list[dict[str, str | float | int]] = []
 
 
-def update_balance(quantum: float):
+def update_balance(value: float):
     record: dict[str, str | float | int] = {
-            "type": "accout",
+            "type": "account",
             "balance": account["balance"]
         }
 
-    if account["balance"] + quantum >= 0:
-        account["balance"] += quantum
+    if account["balance"] + value >= 0:
+        account["balance"] += value
 
         record["new_balance"] = account["balance"]
         history.append(record)
@@ -64,11 +64,11 @@ def update_balance(quantum: float):
         return False
 
 
-def purchase(product_name: str, price: float, amout: int):
-    if update_balance((-1)*amout*price):
+def purchase(product_name: str, price: float, amount: int):
+    if update_balance((-1)*amount*price):
         product = warehouse.get(product_name, template.copy())
 
-        product["amout"] += amout
+        product["amount"] += amount
         product["price"] = price
         warehouse[product_name] = product
 
@@ -81,32 +81,32 @@ def purchase(product_name: str, price: float, amout: int):
             }
         )
 
+def disposal(product_name: str, amount: int, product: dict[str, int | float]):
+    if amount <= product["amount"]:
+        product["amount"] -= amount
+        warehouse[product_name] = product
+        update_balance(amount*product["price"])
 
-
-def disposal(product_name: str, amout: int):
-    product = warehouse.get(product_name)
-    if product is not None:
-        if amout <= product["amout"]:
-            product["amout"] -= amout
-            warehouse[product_name] = product
-            update_balance(amout*product["price"])
-
-            history.append(
-                {
-                    "type": "disposal",
-                    "product_name": product_name,
-                    "price": product["price"],
-                    "balance": account["balance"]
-                }
-            )
+        history.append(
+            {
+                "type": "disposal",
+                "product_name": product_name,
+                "price": product["price"],
+                "balance": account["balance"]
+            }
+        )
     else:
-        print("Brak produktu na stanie")
+        print("Brak wystarczającej liczby sztuk produktu na stanie")
+        
+
+def get_product(product_name: str):
+    return warehouse.get(product_name)
 
 
-def accout():
+def get_account():
     history.append(
         {
-            "type": "accout",
+            "type": "account",
             "balance": account["balance"]
         }
     )
@@ -141,7 +141,7 @@ def overview(start_idx: int = 0, end_idx: int = -1):
 
 def warehouse_eq():
     for product_name, value in warehouse.items():
-        print(f"{product_name:<10}", end=" ")
+        print(f"{product_name:<20}", end=" ")
         for atr_name, v in value.items():
             print(f"{atr_name}: {v:<10}", end=" ")
         print()
@@ -165,24 +165,34 @@ while program_status is True:
     command = input("Podaj opcję: ").lower()
 
     if command in ["saldo"]:
-        quantum = int(input("quantum: "))
-        update_balance(quantum)
+        value = int(input("value: "))
+        update_balance(value)
 
 
     elif command in ["sale", "sprzedaż"]:
-        product_name = input("Product name: ")
-        amout = int(input("amout: "))
-        disposal(product_name, amout)
+        product_name = input("Product name: ").lower()
+        product = get_product(product_name)
+        if product is not None:
+            if product["amount"] > 0:
+              
+                amount = int(input("amount: "))
+                disposal(product_name, amount, product)
+            else:
+                print("Brak produktu na stanie")
+        else:
+            print("Brak produktu na stanie")
+
+
 
     elif command in ["purchase", "zakup"]:
-        product_name = input("product_name: ")
+        product_name = input("product_name: ").lower()
         price = float(input("price: "))
-        amout = int(input("amout: "))
+        amount = int(input("amount: "))
 
-        purchase(product_name, price, amout)
+        purchase(product_name, price, amount)
     
     elif command in ["magazyn", "eq"]:
-        product_name = input("product name: ")
+        product_name = input("product name: ").lower()
         on_warehouse = warehouse.get(product_name)
         if on_warehouse is not None:
             print(f"{product_name:<10}", end=" ")
@@ -203,9 +213,8 @@ while program_status is True:
 
 
 
-
     elif command in ["konto", "balance"]:
-        accout()
+        get_account()
 
     elif command == "koniec":
         program_status = False
